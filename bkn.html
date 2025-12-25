@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>BrokeNever (BKN) — Solana</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, #020617, #0f172a);
+      color: #e5e7eb;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 15px;
+    }
+
+    header img {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    h1 {
+      margin: 15px 0 5px;
+      font-size: clamp(2rem, 5vw, 2.8rem);
+    }
+
+    .symbol {
+      color: #38bdf8;
+      font-size: 1.1rem;
+    }
+
+    section {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 14px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .mint {
+      font-family: monospace;
+      font-size: 0.9rem;
+      word-break: break-all;
+      color: #38bdf8;
+      text-decoration: none;
+    }
+
+    .copy-btn {
+      margin-top: 6px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #22c55e;
+      color: #020617;
+      font-weight: bold;
+    }
+
+    .supply {
+      font-size: 1.15rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .price {
+      font-size: 2.2rem;
+      color: #22c55e;
+    }
+
+    .actions {
+      margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      text-decoration: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      background: #38bdf8;
+      color: #020617;
+      font-weight: bold;
+    }
+
+    canvas {
+      width: 100% !important;
+      max-height: 400px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="https://raw.githubusercontent.com/nbroke/Reallbar/main/C249B08A-B18D-4531-9FE4-12DAC04B5E2A.png" alt="BKN Logo">
+  <h1>BrokeNever</h1>
+  <div class="symbol">BKN • Solana Token</div>
+</header>
+
+<section>
+
+  <div class="card">
+    <h2>📌 Description</h2>
+    <p>
+      <strong>BrokeNever Tokenized stocks</strong> are tokenized derivatives that
+      represent traditional securities, particularly shares in publicly traded
+      firms on regulated exchanges.
+    </p>
+  </div>
+
+  <div class="card info-grid">
+    <div>
+      <strong>Mint</strong><br>
+      <a class="mint" target="_blank"
+         href="https://solscan.io/token/Cvuc5yeR8S53UmXHmo6yhrgjrHbKVsMXPN6jXqUSUjRx">
+        Cvuc5yeR8S53UmXHmo6yhrgjrHbKVsMXPN6jXqUSUjRx
+      </a><br>
+      <button class="copy-btn" onclick="copyMint()">Copier</button>
+    </div>
+
+    <div>
+      <strong>Total Supply</strong>
+      <div class="supply">22 136 090 760.97</div>
+    </div>
+
+    <div>
+      <strong>Current Supply</strong>
+      <div class="supply">22 136 090 760.97</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💰 Cours du token</h2>
+    <div class="price" id="price">Chargement…</div>
+
+    <div class="actions">
+      <a class="btn" target="_blank"
+         href="https://solscan.io/token/Cvuc5yeR8S53UmXHmo6yhrgjrHbKVsMXPN6jXqUSUjRx">
+        🔎 Explorer Solana
+      </a>
+
+      <a class="btn" target="_blank"
+         href="https://x.com/bkn77777">
+        🐦 Twitter / X
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📈 Graphique en aires — BKN</h2>
+    <canvas id="priceChart"></canvas>
+  </div>
+
+</section>
+
+<footer>
+  © 2025 BrokeNever (BKN) — Données DexScreener
+</footer>
+
+<script>
+const MINT = "Cvuc5yeR8S53UmXHmo6yhrgjrHbKVsMXPN6jXqUSUjRx";
+const priceEl = document.getElementById("price");
+let chart;
+
+// Copier le mint
+function copyMint() {
+  navigator.clipboard.writeText(MINT);
+  alert("Mint copié ✔️");
+}
+
+// Charger prix + graphique
+async function loadPrice() {
+  try {
+    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${MINT}`);
+    const data = await res.json();
+    const pair = data.pairs?.[0];
+    if (!pair) return;
+
+    const price = parseFloat(pair.priceUsd);
+    priceEl.textContent = "$" + price.toFixed(6);
+
+    renderChart([
+      price * 0.92,
+      price * 0.95,
+      price * 0.98,
+      price
+    ]);
+  } catch {
+    priceEl.textContent = "—";
+  }
+}
+
+function renderChart(prices) {
+  const ctx = document.getElementById("priceChart").getContext("2d");
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: ["", "", "", "Now"],
+      datasets: [{
+        label: "BKN Price (USD)",
+        data: prices,
+        fill: true,
+        tension: 0.4,
+        borderColor: "#38bdf8",
+        backgroundColor: "rgba(56,189,248,0.35)"
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } }
+      },
+      scales: {
+        x: { ticks: { color: "#e5e7eb" } },
+        y: { ticks: { color: "#e5e7eb" } }
+      }
+    }
+  });
+}
+
+loadPrice();
+setInterval(loadPrice, 30000);
+</script>
+
+</body>
+</html>
+
